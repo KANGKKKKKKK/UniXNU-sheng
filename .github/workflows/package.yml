@@ -11,7 +11,7 @@ on:
       os:
         description: "OS profile of the images"
         type: choice
-        options: ["27", "26", "17"]
+        options: ["27", "26", "17", "macos-27"]
         default: "27"
       init_data:
         description: "Create a NEW installation seed if no saved seed exists (iPadOS 27 only)"
@@ -135,6 +135,20 @@ jobs:
             args+=(--init-data)
           fi
           scripts/package.sh "${args[@]}"
+      - name: diagnostics on failure
+        if: failure()
+        run: |
+          echo "===== disk"
+          df -h
+          echo "===== hdiutil"
+          hdiutil info | head -40 || true
+          echo "===== build logs"
+          for f in UniXNU/out/sheng/*/*/logs/*; do
+            echo "===== $f"
+            tail -n 200 "$f" || true
+          done
+          echo "===== runtime"
+          ls -laR UniXNU/out/sheng/*/*/runtime 2>/dev/null | head -80 || true
       - uses: actions/cache/save@v4
         if: always() && inputs.os == '27' && steps.data-cache.outputs.cache-hit != 'true' && hashFiles('UniXNU/out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/data.dbr') != ''
         with:
